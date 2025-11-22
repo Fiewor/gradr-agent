@@ -1,0 +1,11 @@
+staging_project_id = "grade-346612"
+prod_project_id = "gradr-421618"
+cicd_runner_project_id = "gradr-421618"
+region = "us-central1"
+repository_name = "gradr-agent"
+repository_owner = "Fiewor"
+host_connection_name = "git-gradr-agent"
+create_cb_connection = true
+create_repository = true
+github_app_installation_id = "96014245"
+github_pat_secret_id = "git-gradr-agent-github-oauthtoken-d6732d"
