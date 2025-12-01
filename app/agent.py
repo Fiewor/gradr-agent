@@ -123,7 +123,7 @@ question_grader_agent = Agent(
     name="QuestionGraderAgent",
     model=Gemini(model="gemini-2.5-flash", retry_options=retry_config),
     instruction=GRADER_PROMPT_BASE,
-    tools=[AgentTool(online_answers_agent), AgentTool(summarizer_agent), cache_lookup_tool, cache_store_tool, BuiltInCodeExecutor()],
+    tools=[AgentTool(online_answers_agent), AgentTool(summarizer_agent), BuiltInCodeExecutor()],
     input_keys=["question", "student_answer", "rubric", "final_summary", "external_evidence"],
     output_key="graded_question",
 )
