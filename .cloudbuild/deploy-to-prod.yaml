@@ -13,7 +13,7 @@
 # limitations under the License.
 
 steps:
-  - name: "python:3.12-slim"
+  - name: "python:3.12"
     id: install-dependencies
     entrypoint: /bin/bash
     args:
@@ -21,9 +21,9 @@ steps:
       - |
         pip install uv==0.8.13 --user && uv sync --locked
     env:
-      - 'PATH=/usr/local/bin:/usr/bin:~/.local/bin'
+      - "PATH=/usr/local/bin:/usr/bin:~/.local/bin"
 
-  - name: "python:3.12-slim"
+  - name: "python:3.12"
     id: trigger-deployment
     entrypoint: /bin/bash
     args:
@@ -40,7 +40,7 @@ steps:
           --service-account=${_APP_SERVICE_ACCOUNT_PROD} \
           --set-env-vars="COMMIT_SHA=${COMMIT_SHA},LOGS_BUCKET_NAME=${_LOGS_BUCKET_NAME_PROD}"
     env:
-      - 'PATH=/usr/local/bin:/usr/bin:~/.local/bin'
+      - "PATH=/usr/local/bin:/usr/bin:~/.local/bin"
 
 substitutions:
   _PROD_PROJECT_ID: YOUR_PROD_PROJECT_ID
