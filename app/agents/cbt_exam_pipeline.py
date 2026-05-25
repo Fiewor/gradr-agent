@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 topic_extraction_agent = Agent(
     name="TopicExtractionAgent",
-    model=Gemini(model="gemini-3.1-flash-lite", retry_options=retry_config),
+    model=Gemini(model="gemini-2.5-flash-lite", retry_options=retry_config),
     instruction="Extract topics from resources.",
     output_key="extracted_topics",
 )
