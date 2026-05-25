@@ -25,10 +25,10 @@ from app.agent_engine_app import AgentEngineApp
 @pytest.fixture
 def agent_app() -> AgentEngineApp:
     """Fixture to create and set up AgentEngineApp instance"""
-    from app.agent_engine_app import agent_engine
+    from app.agent_engine_app import pbt_pipeline_engine
 
-    agent_engine.set_up()
-    return agent_engine
+    pbt_pipeline_engine.set_up()
+    return pbt_pipeline_engine
 
 
 @pytest.mark.asyncio

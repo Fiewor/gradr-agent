@@ -18,13 +18,22 @@ import os
 from typing import Any
 
 import vertexai
+from google.adk.apps.app import App
 from google.adk.artifacts import GcsArtifactService, InMemoryArtifactService
 from google.cloud import logging as google_cloud_logging
 from vertexai.agent_engines.templates.adk import AdkApp
 
-from app.agent import app as adk_app
+from app.agents import (
+    cbt_exam_generation_pipeline,
+    cbt_grading_pipeline,
+    pbt_grading_pipeline,
+)
 from app.app_utils.telemetry import setup_telemetry
 from app.app_utils.typing import Feedback
+
+pbt_grading_app = App(root_agent=pbt_grading_pipeline, name="pbt_grading_app")
+cbt_grading_app = App(root_agent=cbt_grading_pipeline, name="cbt_grading_app")
+cbt_exam_app = App(root_agent=cbt_exam_generation_pipeline, name="cbt_exam_app")
 
 
 class AgentEngineApp(AdkApp):
@@ -36,8 +45,9 @@ class AgentEngineApp(AdkApp):
         logging.basicConfig(level=logging.INFO)
         logging_client = google_cloud_logging.Client()
         self.logger = logging_client.logger(__name__)
-        if gemini_location:
-            os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
+        location = os.environ.get("GOOGLE_CLOUD_LOCATION")
+        if location:
+            os.environ["GOOGLE_CLOUD_LOCATION"] = location
 
     def register_feedback(self, feedback: dict[str, Any]) -> None:
         """Collect and log feedback."""
@@ -47,15 +57,28 @@ class AgentEngineApp(AdkApp):
     def register_operations(self) -> dict[str, list[str]]:
         """Registers the operations of the Agent."""
         operations = super().register_operations()
-        operations[""] = operations.get("", []) + ["register_feedback"]
+        operations[""] = [*operations.get("", []), "register_feedback"]
         return operations
 
 
-gemini_location = os.environ.get("GOOGLE_CLOUD_LOCATION")
 logs_bucket_name = os.environ.get("LOGS_BUCKET_NAME")
-agent_engine = AgentEngineApp(
-    app=adk_app,
-    artifact_service_builder=lambda: GcsArtifactService(bucket_name=logs_bucket_name)
+artifact_service = (
+    GcsArtifactService(bucket_name=logs_bucket_name)
     if logs_bucket_name
-    else InMemoryArtifactService(),
+    else InMemoryArtifactService()
+)
+
+pbt_pipeline_engine = AgentEngineApp(
+    app=pbt_grading_app,
+    artifact_service_builder=lambda: artifact_service,
+)
+
+cbt_grading_engine = AgentEngineApp(
+    app=cbt_grading_app,
+    artifact_service_builder=lambda: artifact_service,
+)
+
+cbt_exam_engine = AgentEngineApp(
+    app=cbt_exam_app,
+    artifact_service_builder=lambda: artifact_service,
 )

@@ -1,0 +1,29 @@
+{
+  "eval_set_id": "cbt_sample_eval",
+  "name": "cbt_sample_eval",
+  "eval_cases": [
+    {
+      "eval_id": "cbt_grade_pipeline_test",
+      "session_input": {
+        "app_name": "cbt_grading_app",
+        "user_id": "test_user",
+        "state": {
+          "attemptId": "69cabc860502046e4e3a25f7"
+        }
+      },
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [{"text": "Grade this student's CBT attempt."}],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{"text": "Grading complete"}],
+            "role": "model"
+          }
+        }
+      ]
+    }
+  ],
+  "creation_timestamp": 1779527572.0988019
+}

@@ -26,19 +26,40 @@ playground:
 # Backend Deployment Targets
 # ==============================================================================
 
-# Deploy the agent remotely
-deploy:
-	# Export dependencies to requirements file using uv export.
-	(uv export --no-hashes --no-header --no-dev --no-emit-project --no-annotate > app/app_utils/.requirements.txt 2>/dev/null || \
-	uv export --no-hashes --no-header --no-dev --no-emit-project > app/app_utils/.requirements.txt) && \
+# Generate requirements.txt
+export-reqs:
+	@(uv export --no-hashes --no-header --no-dev --no-emit-project --no-annotate > app/app_utils/.requirements.txt 2>/dev/null || \
+	uv export --no-hashes --no-header --no-dev --no-emit-project > app/app_utils/.requirements.txt)
+
+# Deploy PBT Grading Agent
+deploy-pbt: export-reqs
 	uv run -m app.app_utils.deploy \
 		--source-packages=./app \
 		--entrypoint-module=app.agent_engine_app \
-		--entrypoint-object=agent_engine \
+		--entrypoint-object=pbt_pipeline_engine \
+		--display-name="gradr-pbt-agent" \
 		--requirements-file=app/app_utils/.requirements.txt
 
-# Alias for 'make deploy' for backward compatibility
-backend: deploy
+# Deploy CBT Grading Agent
+deploy-cbt-grading: export-reqs
+	uv run -m app.app_utils.deploy \
+		--source-packages=./app \
+		--entrypoint-module=app.agent_engine_app \
+		--entrypoint-object=cbt_grading_engine \
+		--display-name="gradr-cbt-grading-agent" \
+		--requirements-file=app/app_utils/.requirements.txt
+
+# Deploy CBT Exam Generation Agent
+deploy-cbt-exam: export-reqs
+	uv run -m app.app_utils.deploy \
+		--source-packages=./app \
+		--entrypoint-module=app.agent_engine_app \
+		--entrypoint-object=cbt_exam_engine \
+		--display-name="gradr-cbt-exam-agent" \
+		--requirements-file=app/app_utils/.requirements.txt
+
+# Deploy all agents
+deploy-all: deploy-pbt deploy-cbt-grading deploy-cbt-exam
 
 
 # ==============================================================================

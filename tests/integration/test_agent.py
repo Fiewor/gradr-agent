@@ -18,7 +18,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
-from app.agent import root_agent
+from app.agents.pbt_grading_pipeline import pbt_grading_pipeline
 
 
 def test_agent_stream() -> None:
@@ -30,7 +30,9 @@ def test_agent_stream() -> None:
     session_service = InMemorySessionService()
 
     session = session_service.create_session_sync(user_id="test_user", app_name="test")
-    runner = Runner(agent=root_agent, session_service=session_service, app_name="test")
+    runner = Runner(
+        agent=pbt_grading_pipeline, session_service=session_service, app_name="test"
+    )
 
     message = types.Content(
         role="user", parts=[types.Part.from_text(text="Why is the sky blue?")]

@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .agent import app
+from .agent_engine_app import cbt_exam_app, cbt_grading_app, pbt_grading_app
 
-__all__ = ["app"]
+__all__ = ["cbt_exam_app", "cbt_grading_app", "pbt_grading_app"]

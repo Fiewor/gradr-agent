@@ -1,0 +1,32 @@
+{
+  "eval_set_id": "sample_eval",
+  "name": "sample_eval",
+  "eval_cases": [
+    {
+      "eval_id": "grade_pipeline_test",
+      "session_input": {
+        "app_name": "app",
+        "user_id": "test_user",
+        "state": {
+          "student_id": "JF-STUDENT-001",
+          "exam_id": "69b0261621b72d5cebfba062",
+          "course_id": "69b020e421b72d5cebfba00d",
+          "script_gcs_uri": "gs://grdr/john_fiewor/john_fiewor/ai_101/exam/markingGuides/marking-guide-69b0261621b72d5cebfba062-1773151779664.pdf"
+        }
+      },
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [{"text": "Grade this student's handwritten exam script."}],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [{"text": "Grading complete"}],
+            "role": "model"
+          }
+        }
+      ]
+    }
+  ],
+  "creation_timestamp": 1779527572.0988019
+}
