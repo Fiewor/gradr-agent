@@ -54,10 +54,18 @@ class AgentEngineApp(AdkApp):
         feedback_obj = Feedback.model_validate(feedback)
         self.logger.log_struct(feedback_obj.model_dump(), severity="INFO")
 
+    async def query(self, **kwargs: Any) -> Any:
+        """Unary query method for standard HTTP clients."""
+        events = []
+        async for event in self.async_stream_query(**kwargs):
+            events.append(event)
+        return events[-1] if events else {}
+
     def register_operations(self) -> dict[str, list[str]]:
         """Registers the operations of the Agent."""
         operations = super().register_operations()
         operations[""] = [*operations.get("", []), "register_feedback"]
+        operations["async"] = [*operations.get("async", []), "query"]
         return operations
 
 
