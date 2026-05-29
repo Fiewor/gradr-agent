@@ -54,10 +54,22 @@ class AgentEngineApp(AdkApp):
         feedback_obj = Feedback.model_validate(feedback)
         self.logger.log_struct(feedback_obj.model_dump(), severity="INFO")
 
-    async def query(self, **kwargs: Any) -> Any:
+    async def query(
+        self,
+        *,
+        message: str | dict[str, Any],
+        user_id: str = "default_user",
+        session_id: str | None = None,
+        run_config: dict[str, Any] | None = None,
+    ) -> Any:
         """Unary query method for standard HTTP clients."""
         events = []
-        async for event in self.async_stream_query(**kwargs):
+        async for event in self.async_stream_query(
+            message=message,
+            user_id=user_id,
+            session_id=session_id,
+            run_config=run_config,
+        ):
             events.append(event)
         return events[-1] if events else {}
 
