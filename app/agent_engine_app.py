@@ -71,7 +71,24 @@ class AgentEngineApp(AdkApp):
             run_config=run_config,
         ):
             events.append(event)
-        return events[-1] if events else {}
+        
+        if not events:
+            return {}
+            
+        # Accumulate all state deltas from the event stream
+        accumulated_state_delta = {}
+        for event in events:
+            if isinstance(event, dict) and event.get("actions", {}).get("state_delta"):
+                accumulated_state_delta.update(event["actions"]["state_delta"])
+                
+        final_event = dict(events[-1])
+        if "actions" not in final_event:
+            final_event["actions"] = {}
+        else:
+            final_event["actions"] = dict(final_event["actions"])
+        final_event["actions"]["state_delta"] = accumulated_state_delta
+        return final_event
+
 
     def register_operations(self) -> dict[str, list[str]]:
         """Registers the operations of the Agent."""

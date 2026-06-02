@@ -18,9 +18,9 @@ playground:
 	@echo "|                                                                             |"
 	@echo "| 💡 Try asking: What's the weather in San Francisco?                         |"
 	@echo "|                                                                             |"
-	@echo "| 🔍 IMPORTANT: Select the 'app' folder to interact with your agent.          |"
+	@echo "| 🔍 IMPORTANT: Select the agent you want to interact with from the dropdown! |"
 	@echo "==============================================================================="
-	uv run adk web . --port 8501 --reload_agents
+	PYTHONPATH=$(PWD) uv run adk web local_playground --port 8501 --reload_agents
 
 # ==============================================================================
 # Backend Deployment Targets
@@ -33,6 +33,7 @@ export-reqs:
 
 # Deploy PBT Grading Agent
 deploy-pbt: export-reqs
+
 	uv run -m app.app_utils.deploy \
 		--source-packages=./app \
 		--entrypoint-module=app.agent_engine_app \
