@@ -1,108 +1,199 @@
-# gradr-agent
+# Gradr-Agent
 
-A base ReAct agent built with Google's Agent Development Kit (ADK)
-Agent generated with [`googleCloudPlatform/agent-starter-pack`](https://github.com/GoogleCloudPlatform/agent-starter-pack) version `0.21.0`
+An AI-powered grading agent built with Google's Agent Development Kit (ADK) and optimized for automated evaluation of handwritten and typed student submissions. This project extends the base ReAct agent from googleCloudPlatform/agent-starter-pack (v0.21.0) and integrates tightly with Google Cloud (Vertex AI, BigQuery, Cloud Storage) to deliver high-accuracy automated grading.
+
+Gradr-Agent is part of the broader GradrAI system—a platform for automating grading of paper-based tests using advanced LLMs, prompt orchestration, evaluators, domain expert feedback, and custom MCP tools.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Local Setup (for Hackathon Judges)](#local-setup-for-hackathon-judges)
+- [Running Locally](#running-locally)
+- [Deployment](#deployment)
+- [Evaluation & Quality Assurance](#evaluation--quality-assurance)
+- [Monitoring & Observability](#monitoring--observability)
+
+## Overview
+
+Gradr-Agent acts as the AI reasoning layer for automated grading. It processes marking guides, student answers, and grading rules to generate reliable scoring decisions. The agent uses:
+
+- Gemini 2.0 Flash / Pro via Vertex AI
+- ReAct prompting for reasoning and tool use
+- Custom MCP tools for dataset loading, scoring rubrics, answer extraction, rubric enforcement, and structured output
+- Cloud Storage for resource access
+- BigQuery telemetry for post-hoc evaluation
+- Built-in eval flows with plans for expansion using human domain experts
+
+The project supports school-level, department-level, and individual lecturer workflows for grading handwritten or typed scripts.
+
+## Architecture
+
+### High-Level Components
+
+- **ADK ReAct Agent** (core reasoning + tool orchestration)
+- **Custom MCP Tools**
+- **Evaluation Pipelines**
+  - Notebook-driven evals
+  - Automated rubric consistency checks
+- **Cloud Infrastructure**
+  - Vertex AI grounding + inference
+  - Cloud Storage (rubrics, student files, knowledge base)
+  - BigQuery (telemetry + analytics)
+  - Cloud Trace + Logging
+
+## Features
+
+- Automated grading using structured rubrics
+- Support for multiple grading modes (exact match, partial credit, rubric scoring)
+- Customizable evaluation workflows
+- ReAct-based multi-step reasoning
+- Cloud-first observability with BigQuery + OpenTelemetry
+- Fully reproducible dev environment
+- CI/CD-ready with Terraform + Cloud Build
 
 ## Project Structure
 
-This project is organized as follows:
-
 ```
 gradr-agent/
-├── app/                 # Core application code
-│   ├── agent.py         # Main agent logic
-│   ├── agent_engine_app.py # Agent Engine application logic
-│   └── app_utils/       # App utilities and helpers
-├── .cloudbuild/         # CI/CD pipeline configurations for Google Cloud Build
-├── deployment/          # Infrastructure and deployment scripts
-├── notebooks/           # Jupyter notebooks for prototyping and evaluation
-├── tests/               # Unit, integration, and load tests
-├── Makefile             # Makefile for common commands
-├── GEMINI.md            # AI-assisted development guide
-└── pyproject.toml       # Project dependencies and configuration
+├── app/
+│   ├── agent.py                    # Main agent logic
+│   ├── agent_engine_app.py         # Agent Engine integration
+│   └── app_utils/                  # Tooling helpers
+├── .cloudbuild/                    # Cloud Build CI/CD pipelines
+├── deployment/                     # Terraform IaC
+├── notebooks/                      # Prototyping, evals, grading experiments
+├── tests/                          # Unit + integration tests
+├── Makefile                        # Dev automation
+├── GEMINI.md                       # AI-assisted dev guide
+└── pyproject.toml                  # Python dependencies
 ```
 
-## Requirements
+## Local Setup (for Hackathon Judges)
 
-Before you begin, ensure you have:
-- **uv**: Python package manager (used for all dependency management in this project) - [Install](https://docs.astral.sh/uv/getting-started/installation/) ([add packages](https://docs.astral.sh/uv/concepts/dependencies/) with `uv add <package>`)
-- **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
-- **Terraform**: For infrastructure deployment - [Install](https://developer.hashicorp.com/terraform/downloads)
-- **make**: Build automation tool - [Install](https://www.gnu.org/software/make/) (pre-installed on most Unix-based systems)
+These instructions reproduce the entire environment locally.
 
+### Prerequisites
 
-## Quick Start (Local Testing)
+Install the following:
 
-Install required packages and launch the local development environment:
+| Tool | Purpose | Link |
+|------|---------|------|
+| `uv` | Python package manager | [astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/) |
+| Google Cloud SDK | Access to GCP resources | [cloud.google.com/sdk](https://cloud.google.com/sdk/docs/install) |
+| Terraform | Infrastructure deployment | [terraform.io](https://developer.hashicorp.com/terraform/downloads) |
+| `make` | Automation (usually preinstalled) | [gnu.org/software/make](https://www.gnu.org/software/make/) |
+
+### Clone the Repo
 
 ```bash
-make install && make playground
+git clone <repo-url>
+cd gradr-agent
 ```
 
-## Commands
+### Install Dependencies
 
-| Command              | Description                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `make install`       | Install all required dependencies using uv                                                  |
-| `make playground`    | Launch local development environment for testing agent |
-| `make deploy`        | Deploy agent to Agent Engine |
-| `make register-gemini-enterprise` | Register deployed agent to Gemini Enterprise ([docs](https://googlecloudplatform.github.io/agent-starter-pack/cli/register_gemini_enterprise.html)) |
-| `make test`          | Run unit and integration tests                                                              |
-| `make lint`          | Run code quality checks (codespell, ruff, mypy)                                             |
-| `make setup-dev-env` | Set up development environment resources using Terraform                         |
+```bash
+make install
+```
 
-For full command options and usage, refer to the [Makefile](Makefile).
+### Environment Variables
 
+You must export the following:
 
-## Usage
+```bash
+export GOOGLE_PROJECT_ID=<your-project-id>
+export GOOGLE_SERVICE_KEY=<base64-encoded-key>
+export GOOGLE_APPLICATION_CREDENTIALS=./service_account.json
+```
 
-This template follows a "bring your own agent" approach - you focus on your business logic, and the template handles everything else (UI, infrastructure, deployment, monitoring).
+To generate a valid base64 key:
 
-1. **Prototype:** Build your Generative AI Agent using the intro notebooks in `notebooks/` for guidance. Use Vertex AI Evaluation to assess performance.
-2. **Integrate:** Import your agent into the app by editing `app/agent.py`.
-3. **Test:** Explore your agent functionality using the local playground with `make playground`. The playground automatically reloads your agent on code changes.
-4. **Deploy:** Set up and initiate the CI/CD pipelines, customizing tests as necessary. Refer to the [deployment section](#deployment) for comprehensive instructions. For streamlined infrastructure deployment, simply run `uvx agent-starter-pack setup-cicd`. Check out the [`agent-starter-pack setup-cicd` CLI command](https://googlecloudplatform.github.io/agent-starter-pack/cli/setup_cicd.html). Currently supports GitHub with both Google Cloud Build and GitHub Actions as CI/CD runners.
-5. **Monitor:** Track performance and gather insights using BigQuery telemetry data, Cloud Logging, and Cloud Trace to iterate on your application.
+```bash
+gcloud iam service-accounts keys create key.json \
+ --iam-account=<service-account>@<project>.iam.gserviceaccount.com
 
-The project includes a `GEMINI.md` file that provides context for AI tools like Gemini CLI when asking questions about your template.
+base64 key.json > encoded.txt
+```
 
+Then paste the encoded content into `GOOGLE_SERVICE_KEY`.
+
+### Run the Playground
+
+This starts a local agent runtime with auto-reload.
+
+```bash
+make playground
+```
+
+## Running Locally
+
+### Run tests
+
+```bash
+make test
+```
+
+### Lint & type checks
+
+```bash
+make lint
+```
 
 ## Deployment
 
-> **Note:** For a streamlined one-command deployment of the entire CI/CD pipeline and infrastructure using Terraform, you can use the [`agent-starter-pack setup-cicd` CLI command](https://googlecloudplatform.github.io/agent-starter-pack/cli/setup_cicd.html). Currently supports GitHub with both Google Cloud Build and GitHub Actions as CI/CD runners.
+### Deployed Agent URLs
+This agent is deployed securely to Google Cloud's Vertex AI Reasoning Engine. It does not have a public web URL, but can be invoked programmatically via the Reasoning Engine API endpoints:
+- **Project ID**: `gradr-ai` (or configured via AppConfig)
+- **Location**: `us-central1`
+- **PBT Grading Agent Endpoint**: `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/<PROJECT_ID>/locations/us-central1/reasoningEngines/<PBT_GRADING_AGENT_ID>:query`
+- **CBT Grading Agent Endpoint**: `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/<PROJECT_ID>/locations/us-central1/reasoningEngines/<CBT_GRADING_AGENT_ID>:query`
 
-### Dev Environment
-
-You can test deployment towards a Dev Environment using the following command:
+### Manual Dev Deployment
 
 ```bash
 gcloud config set project <your-dev-project-id>
 make deploy
 ```
 
+## Evaluation & Quality Assurance
 
-The repository includes a Terraform configuration for the setup of the Dev Google Cloud project.
-See [deployment/README.md](deployment/README.md) for instructions.
+Gradr-Agent uses a multi-layered evaluation strategy:
 
-### Production Deployment
+### Current evaluation stack
 
-The repository includes a Terraform configuration for the setup of a production Google Cloud project. Refer to [deployment/README.md](deployment/README.md) for detailed instructions on how to deploy the infrastructure and application.
+- Notebook-based eval suites
+- Rubric consistency tests
+- Automated comparison against gold-standard sample answers
+- Confidence + chain-of-thought quality checks (via structured CoT)
 
+## Monitoring & Observability
 
-## Monitoring and Observability
+The project integrates OpenTelemetry GenAI instrumentation with:
 
-The application uses [OpenTelemetry GenAI instrumentation](https://opentelemetry.io/docs/specs/semconv/gen-ai/) for comprehensive observability. Telemetry data is automatically captured and exported to:
+### Cloud Logging
 
-- **Google Cloud Storage**: GenAI telemetry in JSONL format for efficient querying
-- **BigQuery**: External tables and linked datasets provide immediate access to telemetry data via SQL queries
-- **Cloud Logging**: Dedicated logging bucket with 10-year retention for GenAI operation logs
+- 10-year retention for all agent operation logs
 
-**Query your telemetry data:**
+### BigQuery Telemetry
+
+Fast SQL queries over:
+
+- Model calls
+- Tool traces
+- Latency profiles
+- Token usage
+- Error analysis
+
+Example:
 
 ```bash
-# Example: Query recent completions
 bq query --use_legacy_sql=false \
-  "SELECT * FROM \`gradr-agent_telemetry.completions\` LIMIT 10"
+"SELECT * FROM \`gradr-agent_telemetry.completions\` LIMIT 10"
 ```
 
-For detailed setup instructions, example queries, testing in dev, and optional dashboard visualization, see the [starter pack observability guide](https://googlecloudplatform.github.io/agent-starter-pack/guide/observability.html).
+### Cloud Trace
+
+- Distributed traces for multi-step ReAct flows
