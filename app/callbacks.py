@@ -38,6 +38,7 @@ def preprocessing_after_callback(callback_context: CallbackContext) -> None:
         callback_context.state["weakness_profile"] = []
         callback_context.state["referee_status"] = "COMPLETED"
         callback_context.state["practice_session_id"] = ""
+        logger.info("PreprocessingAgent complete. Handing off to GradingAgent...")
         _log_agent_complete("PreprocessingAgent", "preprocessing_context")
     except Exception as e:
         logger.error(f"Error parsing preprocessing_context: {e}")
@@ -52,6 +53,7 @@ def grading_after_callback(callback_context: CallbackContext) -> None:
     try:
         data = json.loads(_clean_json(raw_res))
         callback_context.state["graded_questions"] = data.get("graded_questions", [])
+        logger.info("GradingAgent: Successfully evaluated answers against the rubric. Handing off to RefereeAgent...")
         _log_agent_complete("GradingAgent", "graded_result")
     except Exception as e:
         logger.error(f"Error parsing graded_result: {e}")
@@ -66,6 +68,10 @@ def referee_after_callback(callback_context: CallbackContext) -> None:
     try:
         data = json.loads(_clean_json(raw_rep))
         callback_context.state["referee_status"] = data.get("status", "COMPLETED")
+        if data.get("status") == "PENDING_REVIEW":
+            logger.warning("[REFEREE AGENT]: Low confidence detected. Flagging for teacher review (HITL).")
+        else:
+            logger.info("RefereeAgent complete. Results verified with high confidence.")
         _log_agent_complete("RefereeAgent", "referee_report")
     except Exception as e:
         logger.error(f"Error parsing referee_report: {e}")
@@ -88,6 +94,7 @@ def weakness_after_callback(callback_context: CallbackContext) -> None:
         callback_context.state["weakness_profile"] = json.loads(
             _clean_json(raw_profile)
         )
+        logger.info("WeaknessDetectionAgent: Identified weak topics for student.")
         _log_agent_complete("WeaknessDetectionAgent", "weakness_profile_raw")
     except Exception as e:
         logger.error(f"Error parsing weakness_profile_raw: {e}")
@@ -107,6 +114,7 @@ def smart_prep_after_callback(callback_context: CallbackContext) -> None:
         callback_context.state["practice_sessions_created"] = data.get(
             "practice_sessions_created", []
         )
+        logger.info("SmartPrepAgent: Auto-generated personalized practice session successfully. No teacher action required.")
         _log_agent_complete("SmartPrepAgent", "practice_sessions_created_raw")
     except Exception as e:
         logger.error(f"Error parsing practice_sessions_created: {e}")
