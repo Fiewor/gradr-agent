@@ -3,7 +3,7 @@ import logging
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
 
-from app.callbacks import smart_prep_after_callback, weakness_after_callback
+from app.callbacks import smart_prep_after_callback, weakness_after_callback, skip_smartprep_gate
 from app.prompts import SMART_PREP_PROMPT, WEAKNESS_PROMPT
 from app.toolsets import custom_mcp_toolset, mongo_mcp_toolset, retry_config
 
@@ -28,5 +28,6 @@ def create_smart_prep_agent() -> Agent:
         instruction=SMART_PREP_PROMPT,
         tools=[custom_mcp_toolset, mongo_mcp_toolset],
         output_key="practice_sessions_created_raw",
+        before_agent_callback=skip_smartprep_gate,
         after_agent_callback=smart_prep_after_callback,
     )

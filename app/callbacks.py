@@ -190,3 +190,49 @@ def skip_if_generate_only(callback_context: CallbackContext) -> typing.Optional[
     return None
 
 
+ALOC_EXAM_TYPES = {"utme", "wassce", "post-utme", "neco"}
+
+
+def skip_smartprep_if_not_aloc(callback_context: CallbackContext) -> typing.Optional[typing.Any]:
+    """Gate SmartPrep: only run for ALOC-compatible exam types."""
+    exam_type = (callback_context.state.get("exam_type") or "").lower().strip()
+    if exam_type not in ALOC_EXAM_TYPES:
+        callback_context.state["smartprep_skipped"] = True
+        callback_context.state["smartprep_skip_reason"] = (
+            f"No question bank available for exam type '{exam_type or 'unknown'}'. "
+            "Weakness profile was persisted for teacher review."
+        )
+        logger.info(
+            "SmartPrepAgent skipped: exam_type '%s' is not ALOC-compatible. "
+            "Weakness data persisted for teacher insights only.",
+            exam_type,
+        )
+        from google.genai import types as genai_types
+        return genai_types.Content(parts=[genai_types.Part(text='{"skipped": true, "reason": "non-ALOC exam type"}')])
+    return None
+
+
+def skip_smartprep_if_unlinked(callback_context: CallbackContext) -> typing.Optional[typing.Any]:
+    """Gate SmartPrep: defer for students without a linked User account."""
+    linked_user_id = callback_context.state.get("linked_user_id")
+    if not linked_user_id:
+        callback_context.state["smartprep_skipped"] = True
+        callback_context.state["smartprep_skip_reason"] = (
+            "Student has no linked user account. "
+            "Practice session will be generated when the student is linked."
+        )
+        logger.info(
+            "SmartPrepAgent deferred: no linked_user_id. "
+            "Practice session creation deferred until student links their account."
+        )
+        from google.genai import types as genai_types
+        return genai_types.Content(parts=[genai_types.Part(text='{"skipped": true, "reason": "unlinked student"}')])
+    return None
+
+
+def skip_smartprep_gate(callback_context: CallbackContext) -> typing.Optional[typing.Any]:
+    """Combined gate: checks ALOC compatibility first, then linked status."""
+    result = skip_smartprep_if_not_aloc(callback_context)
+    if result is not None:
+        return result
+    return skip_smartprep_if_unlinked(callback_context)
