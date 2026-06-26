@@ -175,6 +175,62 @@ def _get_message_payload(callback_context: CallbackContext) -> dict:
             
     return {}
 
+
+def deterministic_mcq_grading(callback_context: CallbackContext) -> typing.Optional[typing.Any]:
+    """Deterministic MCQ grading — no LLM needed for string comparison."""
+    attempt_context = callback_context.state.get("attempt_context")
+    if not attempt_context:
+        logger.warning("MCQ grading: no attempt_context in state, falling back to LLM")
+        return None  # Fall through to LLM agent
+
+    try:
+        # Parse attempt_context if it's a string
+        if isinstance(attempt_context, str):
+            attempt_context = json.loads(_clean_json(attempt_context))
+
+        attempt = attempt_context.get("attempt", {})
+        exam = attempt_context.get("exam", {})
+
+        answers = attempt.get("answers", {})
+        questions = exam.get("questions", [])
+
+        mcq_results = []
+        for q in questions:
+            q_id = str(q.get("_id", {}).get("$oid", q.get("_id", "")))
+            correct = str(q.get("correctOptionId", q.get("correctAnswer", ""))).strip().lower()
+            student_answer = str(answers.get(q_id, "")).strip().lower()
+            max_score = q.get("maxMarks", q.get("marks", 1))
+
+            is_correct = student_answer == correct and student_answer != ""
+            score = max_score if is_correct else 0
+
+            mcq_results.append({
+                "questionId": q_id,
+                "score": score,
+                "maxScore": max_score,
+                "explanation": f"{'Correct' if is_correct else 'Incorrect'}. The correct answer is {q.get('correctOptionId', q.get('correctAnswer', 'N/A'))}.",
+                "feedback": "Well done!" if is_correct else "Review this topic.",
+            })
+
+        # Write results to state (same key the after_callback expects)
+        result_json = json.dumps({"mcq_results": mcq_results})
+        callback_context.state["mcq_results_raw"] = result_json
+
+        total = sum(r["score"] for r in mcq_results)
+        total_max = sum(r["maxScore"] for r in mcq_results)
+        logger.info(
+            "MCQ grading completed deterministically: %d/%d (no LLM call)",
+            total, total_max,
+        )
+
+        # Return Content to skip the LLM agent
+        from google.genai import types as genai_types
+        return genai_types.Content(parts=[genai_types.Part(text=result_json)])
+
+    except Exception as e:
+        logger.error("Deterministic MCQ grading failed, falling back to LLM: %s", e, exc_info=True)
+        return None  # Fall through to LLM agent as fallback
+
 def skip_if_extract_only(callback_context: CallbackContext) -> typing.Optional[typing.Any]:
     payload = _get_message_payload(callback_context)
     if payload.get("task") == "extract_topics_only":

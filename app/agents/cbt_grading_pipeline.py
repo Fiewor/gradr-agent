@@ -7,7 +7,7 @@ from app.agents.shared_agents import (
     create_smart_prep_agent,
     create_weakness_detection_agent,
 )
-from app.callbacks import generic_callback
+from app.callbacks import generic_callback, deterministic_mcq_grading
 from app.prompts import (
     ATTEMPT_RETRIEVAL_PROMPT,
     ESSAY_GRADING_PROMPT,
@@ -34,6 +34,7 @@ mcq_grading_agent = Agent(
     model=Gemini(model="gemini-2.5-flash-lite", retry_options=retry_config),
     instruction=MCQ_GRADING_PROMPT,
     output_key="mcq_results_raw",
+    before_agent_callback=deterministic_mcq_grading,
     after_agent_callback=generic_callback("mcq_results_group"),
 )
 
