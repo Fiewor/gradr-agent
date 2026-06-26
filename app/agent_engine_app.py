@@ -15,6 +15,7 @@
 # mypy: disable-error-code="attr-defined,arg-type"
 import logging
 import os
+import asyncio
 from typing import Any
 
 import vertexai
@@ -30,6 +31,8 @@ from app.agents import (
 )
 from app.app_utils.telemetry import setup_telemetry
 from app.app_utils.typing import Feedback
+
+logger = logging.getLogger(__name__)
 
 pbt_grading_app = App(root_agent=pbt_grading_pipeline, name="pbt_grading_app")
 cbt_grading_app = App(root_agent=cbt_grading_pipeline, name="cbt_grading_app")
@@ -63,24 +66,37 @@ class AgentEngineApp(AdkApp):
         run_config: dict[str, Any] | None = None,
     ) -> Any:
         """Unary query method for standard HTTP clients."""
+        # Pipeline timeout: 5 minutes max for a complete grading run
+        pipeline_timeout = int(os.environ.get("PIPELINE_TIMEOUT_SECONDS", 300))
         events = []
-        async for event in self.async_stream_query(
-            message=message,
-            user_id=user_id,
-            session_id=session_id,
-            run_config=run_config,
-        ):
-            events.append(event)
-        
+        try:
+            async with asyncio.timeout(pipeline_timeout):
+                async for event in self.async_stream_query(
+                    message=message,
+                    user_id=user_id,
+                    session_id=session_id,
+                    run_config=run_config,
+                ):
+                    events.append(event)
+        except TimeoutError:
+            logger.error(
+                "Pipeline timed out after %d seconds for session %s",
+                pipeline_timeout, session_id,
+            )
+            return {
+                "error": f"Pipeline timed out after {pipeline_timeout} seconds",
+                "partial_events": len(events),
+            }
+
         if not events:
             return {}
-            
+
         # Accumulate all state deltas from the event stream
         accumulated_state_delta = {}
         for event in events:
             if isinstance(event, dict) and event.get("actions", {}).get("state_delta"):
                 accumulated_state_delta.update(event["actions"]["state_delta"])
-                
+
         final_event = dict(events[-1])
         if "actions" not in final_event:
             final_event["actions"] = {}

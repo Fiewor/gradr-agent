@@ -22,7 +22,7 @@ def preprocessing_after_callback(callback_context: CallbackContext) -> None:
             callback_context.state["skipped"] = True
             return
         if data.get("error"):
-            logger.error(f"Preprocessing aborted pipeline: {data.get('error')}")
+            logger.error("Preprocessing aborted pipeline: %s", data.get("error"))
             raise ValueError(
                 f"CRITICAL: Preprocessing missing dependencies: {data.get('error')}"
             )
@@ -41,23 +41,27 @@ def preprocessing_after_callback(callback_context: CallbackContext) -> None:
         logger.info("PreprocessingAgent complete. Handing off to GradingAgent...")
         _log_agent_complete("PreprocessingAgent", "preprocessing_context")
     except Exception as e:
-        logger.error(f"Error parsing preprocessing_context: {e}")
+        logger.error("Error parsing preprocessing_context: %s", e, exc_info=True)
         raise e
 
 
 def grading_after_callback(callback_context: CallbackContext) -> None:
     raw_res = callback_context.state.get("graded_result")
     if not raw_res:
-        callback_context.state["graded_questions"] = []
-        return
+        logger.error("GradingAgent returned no output. Aborting pipeline.")
+        raise ValueError("CRITICAL: GradingAgent produced no graded result.")
     try:
         data = json.loads(_clean_json(raw_res))
-        callback_context.state["graded_questions"] = data.get("graded_questions", [])
+        graded = data.get("graded_questions", [])
+        if not graded:
+            logger.error("GradingAgent returned empty graded_questions. Aborting pipeline.")
+            raise ValueError("CRITICAL: GradingAgent produced zero graded questions.")
+        callback_context.state["graded_questions"] = graded
         logger.info("GradingAgent: Successfully evaluated answers against the rubric. Handing off to RefereeAgent...")
         _log_agent_complete("GradingAgent", "graded_result")
-    except Exception as e:
-        logger.error(f"Error parsing graded_result: {e}")
-        callback_context.state["graded_questions"] = []
+    except json.JSONDecodeError as e:
+        logger.error("CRITICAL: Failed to parse grading result: %s", e, exc_info=True)
+        raise ValueError(f"CRITICAL: GradingAgent output is not valid JSON: {e}") from e
 
 
 def referee_after_callback(callback_context: CallbackContext) -> None:
@@ -74,7 +78,7 @@ def referee_after_callback(callback_context: CallbackContext) -> None:
             logger.info("RefereeAgent complete. Results verified with high confidence.")
         _log_agent_complete("RefereeAgent", "referee_report")
     except Exception as e:
-        logger.error(f"Error parsing referee_report: {e}")
+        logger.error("Error parsing referee_report: %s", e, exc_info=True)
         callback_context.state["referee_status"] = "COMPLETED"
 
 
@@ -97,7 +101,7 @@ def weakness_after_callback(callback_context: CallbackContext) -> None:
         logger.info("WeaknessDetectionAgent: Identified weak topics for student.")
         _log_agent_complete("WeaknessDetectionAgent", "weakness_profile_raw")
     except Exception as e:
-        logger.error(f"Error parsing weakness_profile_raw: {e}")
+        logger.error("Error parsing weakness_profile_raw: %s", e, exc_info=True)
         callback_context.state["weakness_profile"] = {
             "weakTopics": [],
             "classWeakTopics": [],
@@ -117,7 +121,7 @@ def smart_prep_after_callback(callback_context: CallbackContext) -> None:
         logger.info("SmartPrepAgent: Auto-generated personalized practice session successfully. No teacher action required.")
         _log_agent_complete("SmartPrepAgent", "practice_sessions_created_raw")
     except Exception as e:
-        logger.error(f"Error parsing practice_sessions_created: {e}")
+        logger.error("Error parsing practice_sessions_created: %s", e, exc_info=True)
         callback_context.state["practice_sessions_created"] = []
 
 
@@ -136,7 +140,7 @@ def generic_callback(output_key: str) -> typing.Callable[[CallbackContext], None
             callback_context.state[output_key] = data
             _log_agent_complete("Agent", f"{output_key}_raw")
         except Exception as e:
-            logger.error(f"Error parsing {output_key}_raw: {e}")
+            logger.error("Error parsing %s_raw: %s", output_key, e, exc_info=True)
             callback_context.state[output_key] = {}
 
     return callback
