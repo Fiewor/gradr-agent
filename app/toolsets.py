@@ -46,8 +46,15 @@ custom_mcp_connection = StreamableHTTPConnectionParams(
 custom_mcp_toolset = McpToolset(connection_params=custom_mcp_connection)
 
 # MongoDB MCP toolset configuration
+# Only pass the connection string — do not leak other secrets to the subprocess
+mongo_mcp_env = {
+    "MDB_MCP_CONNECTION_STRING": os.environ.get("MDB_MCP_CONNECTION_STRING", ""),
+    "PATH": os.environ.get("PATH", ""),
+    "HOME": os.environ.get("HOME", ""),
+    "NODE_PATH": os.environ.get("NODE_PATH", ""),
+}
 mongo_mcp_params = StdioServerParameters(
-    command="npx", args=["-y", "mongodb-mcp-server"], env={**os.environ}
+    command="npx", args=["-y", "mongodb-mcp-server"], env=mongo_mcp_env
 )
 mongo_mcp_connection = StdioConnectionParams(
     server_params=mongo_mcp_params, timeout=45.0
